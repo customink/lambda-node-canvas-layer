@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# ==== Build layer ====
+if [ -z ${SKIP_BUILD+x} ]; then ./bin/build; fi
+
+# ==== Zip layer contents ====
+pushd build > /dev/null
+zip -qr9 layer.zip *
+popd > /dev/null
+
+# ==== Deploy layer ====
+aws lambda publish-layer-version \
+  --layer-name node-canvas-1_6_3 \
+  --description "A layer that supports running node canvas 1.6.3 on AWS Lambda, including librsvg" \
+  --license-info "MIT" \
+  --zip-file fileb://build/layer.zip \
+  --compatible-runtimes nodejs8.10 \
+  --output text | head -n 1 | cut -f4
+
+rm build/layer.zip

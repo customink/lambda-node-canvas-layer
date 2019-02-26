@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+# ==== Environment values ====
+AMAZONLINUX_LIBRSVG_IMAGE=customink/amazonlinux/librsvg
+NODE_CANVAS_IMAGE=customink/lambci/build-nodejs8.10/node-canvas
+
+# ==== Prepare folders ====
+rm -rf ./build
+mkdir -p build/{lib,bin,nodejs}
+
+# ==== Copy librsvg binaries and libraries ====
+docker build -t $AMAZONLINUX_LIBRSVG_IMAGE ./docker/librsvg
+docker run --name temp-image $AMAZONLINUX_LIBRSVG_IMAGE /bin/true
+
+docker cp temp-image:/var/task/bin ./build
+docker cp temp-image:/var/task/lib ./build
+
+docker rm temp-image
+
+# ==== Copy node-canvas libraries ====
+docker build -t $NODE_CANVAS_IMAGE ./docker/node-canvas
+docker run --name temp-image $NODE_CANVAS_IMAGE /bin/true
+
+docker cp temp-image:/var/task/lib ./build
+
+docker rm temp-image
+
+# ==== Build node-canvas, remove unnecessary
+mkdir -p build/nodejs
+docker run -v "$PWD"/build/nodejs:/var/task -it $NODE_CANVAS_IMAGE npm install --no-package-lock canvas@1.6.3
+
+echo "== Build finished. =="
